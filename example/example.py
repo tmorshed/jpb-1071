@@ -1,3 +1,4 @@
+#%% Import and load
 from neuron import h,gui
 from random import random as rand
 from random import choice as pick
@@ -8,6 +9,7 @@ h.load_file("./STN_Template.hoc")
 numSTN = 1
 numGPe = 1
 
+#%% Inititate
 STNs = []
 GPes = []
 
@@ -15,6 +17,9 @@ for i in range(numSTN):
     STNs.append(h.STN())
 for i in range(numGPe):
     GPes.append(h.GPe())
+# CHANGE: list comprehension instead of stupid loop dim resize
+# STNs = [h.STN() for i in range(numSTN)]
+# STNs = [h.GPe() for i in range(numGPe)]
 
 iclamp       = h.IClamp(STNs[0].soma[0](0.5))
 iclamp.dur   = 0.1 # ms
@@ -82,6 +87,7 @@ while h.t < tstop:
         print(f"{h.t/tstop*100:.1f}%\r",end="")
 print("Done!")
 
+#%% Visualize
 import matplotlib.pyplot as plt
 
 plt.subplot(121)
