@@ -1,0 +1,217 @@
+
+./ampa.c: ../Mechanisms//ampa.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) ampa.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./ampa.o: ./ampa.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./axnode75.c: ../Mechanisms//axnode75.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) axnode75.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./axnode75.o: ./axnode75.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./gabaa.c: ../Mechanisms//gabaa.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) gabaa.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./gabaa.o: ./gabaa.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./GPi_cacum.c: ../Mechanisms//GPi_cacum.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) GPi_cacum.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./GPi_cacum.o: ./GPi_cacum.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./GPi_HCN.c: ../Mechanisms//GPi_HCN.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) GPi_HCN.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./GPi_HCN.o: ./GPi_HCN.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./GPi_HVA.c: ../Mechanisms//GPi_HVA.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) GPi_HVA.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./GPi_HVA.o: ./GPi_HVA.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./GPi_KDRf.c: ../Mechanisms//GPi_KDRf.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) GPi_KDRf.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./GPi_KDRf.o: ./GPi_KDRf.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./GPi_KDRs.c: ../Mechanisms//GPi_KDRs.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) GPi_KDRs.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./GPi_KDRs.o: ./GPi_KDRs.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./gpi.c: ../Mechanisms//gpi.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) gpi.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./gpi.o: ./gpi.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./GPi_myions.c: ../Mechanisms//GPi_myions.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) GPi_myions.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./GPi_myions.o: ./GPi_myions.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./GPi_NaL.c: ../Mechanisms//GPi_NaL.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) GPi_NaL.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./GPi_NaL.o: ./GPi_NaL.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./GPi_Na.c: ../Mechanisms//GPi_Na.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) GPi_Na.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./GPi_Na.o: ./GPi_Na.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./GPi_SK.c: ../Mechanisms//GPi_SK.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) GPi_SK.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./GPi_SK.o: ./GPi_SK.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./parak75.c: ../Mechanisms//parak75.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) parak75.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./parak75.o: ./parak75.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./STh.c: ../Mechanisms//STh.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) STh.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./STh.o: ./STh.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./STN_Cacum.c: ../Mechanisms//STN_Cacum.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) STN_Cacum.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./STN_Cacum.o: ./STN_Cacum.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./STN_CaT.c: ../Mechanisms//STN_CaT.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) STN_CaT.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./STN_CaT.o: ./STN_CaT.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./STN_HVA.c: ../Mechanisms//STN_HVA.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) STN_HVA.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./STN_HVA.o: ./STN_HVA.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./STN_Ih.c: ../Mechanisms//STN_Ih.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) STN_Ih.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./STN_Ih.o: ./STN_Ih.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./STN_KDR.c: ../Mechanisms//STN_KDR.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) STN_KDR.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./STN_KDR.o: ./STN_KDR.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./STN_Kv31.c: ../Mechanisms//STN_Kv31.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) STN_Kv31.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./STN_Kv31.o: ./STN_Kv31.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./STN_myions.c: ../Mechanisms//STN_myions.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) STN_myions.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./STN_myions.o: ./STN_myions.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./STN_NaL.c: ../Mechanisms//STN_NaL.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) STN_NaL.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./STN_NaL.o: ./STN_NaL.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./STN_Na.c: ../Mechanisms//STN_Na.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) STN_Na.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./STN_Na.o: ./STN_Na.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./STN_sKCa.c: ../Mechanisms//STN_sKCa.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) STN_sKCa.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./STN_sKCa.o: ./STN_sKCa.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./tmgsyn.c: ../Mechanisms//tmgsyn.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) tmgsyn.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./tmgsyn.o: ./tmgsyn.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
+./train.c: ../Mechanisms//train.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "../Mechanisms"; MODLUNIT=$(NRNUNITS) $(NOCMODL) train.mod -o "/home/taha/git/jpb-1071/example/x86_64")
+
+./train.o: ./train.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I"../Mechanisms" $(INCLUDES) -fPIC -c $< -o $@
+
