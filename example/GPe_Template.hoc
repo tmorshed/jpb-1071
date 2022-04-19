@@ -1,0 +1,790 @@
+//***********************************************************************************
+// GPi NEURON MODEL - soma, axon, dendrites (Fig4 from Parent2001 J. Comp. Neurol.)
+//  --> pallidofugal fibers projected to thalamus and PPN, but removed the distal
+//      axonal structure to reduce the computational load
+//
+// Matt Johnson (updated 8/08)
+//
+// NEURON code framework based on: Miocinovic2006 and Gillies2006
+// NEURON 6.1 (Windows version)
+//***********************************************************************************
+begintemplate GPe
+
+//Declare the public variables that will be available outside of the template definition
+public dend, dendelements, soma, somaelements, initseg, iselements, node, axonnodes, MYSA, paranodes1, FLUT, paranodes2, STIN, axoninter, nclist, total, s
+
+objref s[1]
+objectvar nclist
+create soma[1], dend[1], initseg[1], node[1], MYSA[1], FLUT[1], STIN[1]
+
+// I can redefine a section or array of sections inside a procedure
+
+proc init() {
+	nclist = new List()
+	model_globals()
+	dependent_var() 
+	change_params()
+	initcell()
+	connections()
+	geometry1()
+	axongeometry()
+}
+
+
+//------------------------------- Model Globals ----------------------------------------//
+proc model_globals(){
+
+    celsius = 36    //30 degC
+    v_init = -60    //mV
+
+    //topological parameters
+    dendelements = 60
+    somaelements = 15
+    iselements = 1		// initial segment elements
+	axonnodes= 30		// CHANGE THIS TO GET DESIRED AXON LENGTH	
+	paranodes1=(axonnodes-1)*2
+	paranodes2=(axonnodes-1)*2
+	axoninter=(axonnodes-1)*3
+	total = dendelements+somaelements+iselements+axonnodes+paranodes1+paranodes2+axoninter
+
+    //morphological parameters of the axon
+    fiberD=4            //fiber diameter
+    nodelength = 1      //node length
+    paralength1 = 3     //MYSA length
+    space_p1 = 0.002  
+    space_p2 = 0.004
+    space_i = 0.004
+
+    //electrical parameters of the axon
+    rhoa = 0.7e6     // Ohm-um cytoplasmic resistance
+    mycm = 0.1       // uF/cm2 lamella membrane capacitance
+    mygm = 0.001     // S/cm2 lamella membrane conductance
+}
+//--------------------------------------------------------------------------------------//
+
+//------------------------------ Dependent Variables -----------------------------------//
+proc dependent_var() {
+    if (fiberD==1) {axonD=0.8 nodeD=0.7 paraD1=0.7 paraD2=0.8 deltax=200 paralength2=10 nl=20 STINlength=58}
+    if (fiberD==2) {axonD=1.6 nodeD=1.4 paraD1=1.4 paraD2=1.6 deltax=200 paralength2=10 nl=30 STINlength=58}
+	if (fiberD==3) {axonD=2.1 nodeD=1.6 paraD1=1.6 paraD2=2.1 deltax=300 paralength2=15 nl=50 STINlength=88}
+	if (fiberD==4) {axonD=2.5 nodeD=1.7 paraD1=1.7 paraD2=2.5 deltax=400 paralength2=26 nl=65 STINlength=114}
+
+    Rpn0 = (rhoa*.01)/(PI*((((nodeD/2)+space_p1)^2)-((nodeD/2)^2)))
+    Rpn1 = (rhoa*.01)/(PI*((((paraD1/2)+space_p1)^2)-((paraD1/2)^2)))
+    Rpn2 = (rhoa*.01)/(PI*((((paraD2/2)+space_p2)^2)-((paraD2/2)^2)))
+    Rpx = (rhoa*.01)/(PI*((((axonD/2)+space_i)^2)-((axonD/2)^2)))
+
+    // interlength = (deltax-nodelength-(2*paralength1)-(2*paralength2))/6
+}
+//--------------------------------------------------------------------------------------//
+
+
+//------------------------------- Change Parameters ------------------------------------//
+proc change_params() {
+	/*  ------- These concentrations are now set in GPi_myions and GPi_cacum -----------
+	//Intracell. ion concentrations are typical mammalian values (from Johnston & Wu, 1999 via NEUORN tutorial)
+	cai0_ca_ion = 1e-4
+    ki0_k_ion = 140
+    nai0_na_ion = 10
+	//Extracell. ion concentrations taken from Nakanishi 1990 (slice bathing solution)
+	cao0_ca_ion = 2.4
+	ko0_k_ion = 6.24
+	nao0_na_ion = 150
+	----------------------------------------------------------------------------------- */
+
+	//Parameters (mho/cm2)
+    my_gna_na = 0.02            //Fit according to AP height
+    my_gna_nal = 2.8e-5         //was 1.8e-5 for in vitro testing
+    my_gh_ih = 0.0002           //Nakanishi1990-Fig1A
+    my_gk_kdrf = 0.0040         //Kv3.1, fit according to AP duration
+    my_gk_kdrs = 0.0010         //Kv2.1
+    my_gk_skca = 0.00001        //GPi_sKCa
+    my_gcal_hva = 0.0005        //Nakanishi1990-Fig2
+    my_gcan_hva = 0.0020        //Nakanishi1990-Fig2
+
+	//create random number generator
+	//objref rand
+	//rand = new Random(0.1)       // random number generator
+}
+//--------------------------------------------------------------------------------------//
+
+//------------------------------- Initialize Cell --------------------------------------//
+proc initcell() {
+	objref s[total] 	//list of all compartments
+	create soma[somaelements], dend[dendelements], initseg[iselements]
+	create node[axonnodes], MYSA[paranodes1], FLUT[paranodes2], STIN[axoninter]
+
+    for i=0,somaelements-1 {
+        soma[i] {
+            s[i] = new SectionRef()
+            nseg = 1
+            Ra = 174 	//(Ohm-cm) from Hanson2004, Gillies 2005-->150.2, Mouchet2004-->200
+            cm = 1
+
+            //**************************************************************************
+            // Passive membrane properties
+            //**************************************************************************
+            insert GPi_myions   //dummy mechanism to set up ion concentrations for na and k		
+
+            //**************************************************************************
+            // Autonomous fast firing membrane properties
+            //**************************************************************************
+            insert GPi_Na                       //MODEL FOR NA+ CURRENT
+                gna_GPi_Na = my_gna_na      
+            insert GPi_NaL                      //MODEL FOR NA+ LEAK CURRENT
+                gna_GPi_NaL = my_gna_nal
+            insert GPi_Ih                       //MODEL FOR K+ INWARD RECTIFIER CURRENT
+                gh_GPi_Ih = my_gh_ih
+            insert GPi_KDRf                     //MODEL FOR K+ DELAYED RECTIFIER CURRENT (fast-deactivating)
+                gk_GPi_KDRf = my_gk_kdrf
+            insert GPi_KDRs                     //MODEL FOR K+ DELAYED RECTIFIER CURRENT (slowly-deactivating/inactivating)
+                gk_GPi_KDRs = my_gk_kdrs
+            insert GPi_sKCa                     //MODEL FOR SMALL COND CA2+ ACTIVATED K+ CURRENT
+                gk_GPi_sKCa = my_gk_skca
+            insert GPi_cacum                    //MODEL FOR CA2+ ACCUMULATION
+                cai0_GPi_cacum = cai0_ca_ion
+            insert GPi_HVA                      //MODEL FOR HVA Ca2+ CURRENT
+                gcaL_GPi_HVA = my_gcal_hva
+                gcaN_GPi_HVA = my_gcan_hva
+
+            insert extracellular xraxial=1e+09 xg=1e+09 xc=0
+        }
+    }
+
+    for i=0,dendelements-1 {
+        dend[i] {
+            s[i+somaelements] = new SectionRef()
+            nseg = 1
+            Ra = 174 	//(Ohm-cm) from Hanson2004, Gillies 2005-->150.2, Mouchet2004-->200
+            cm = 1
+
+            //**************************************************************************
+            // Passive membrane properties
+            //**************************************************************************
+            insert GPi_myions   //dummy mechanism to set up ion concentrations for na and k		
+
+            //**************************************************************************
+            // Autonomous fast firing membrane properties
+            //**************************************************************************
+            insert GPi_Na                       //MODEL FOR NA+ CURRENT
+                gna_GPi_Na = 1e-7               
+            insert GPi_NaL                      //MODEL FOR NA+ LEAK CURRENT
+                gna_GPi_NaL = my_gna_nal
+            insert GPi_Ih                       //MODEL FOR K+ INWARD RECTIFIER CURRENT
+                gh_GPi_Ih = my_gh_ih
+            insert GPi_KDRf                     //MODEL FOR FAST-DEACTIVATING K+ CURRENT (delayed rectifier)
+                gk_GPi_KDRf = my_gk_kdrf
+            insert GPi_KDRs                     //MODEL FOR SLOW-DEACTIVATING K+ CURRENT (delayed rectifier)
+                gk_GPi_KDRs = my_gk_kdrs
+            insert GPi_sKCa                     //MODEL FOR SMALL COND CA2+ ACTIVATED K+ CURRENT
+                gk_GPi_sKCa = my_gk_skca
+            insert GPi_cacum                    //MODEL FOR CA2+ ACCUMULATION
+                cai0_GPi_cacum = cai0_ca_ion
+            insert GPi_HVA                      //MODEL FOR HVA Ca2+ CURRENT
+                gcaN_GPi_HVA = my_gcan_hva
+                gcaL_GPi_HVA = my_gcal_hva
+
+            insert extracellular xraxial=1e+09 xg=1e+09 xc=0
+        }
+    }
+
+    for i=0,iselements-1 {
+        initseg[i] {
+	    s[i+dendelements+somaelements] = new SectionRef()
+            nseg = 1
+            Ra = 174 	//(Ohm-cm) from Hanson2004, Gillies 2005-->150.2, Mouchet2004-->200
+            cm = 1
+
+            //**************************************************************************
+            // Passive membrane properties
+            //**************************************************************************
+            insert GPi_myions   //dummy mechanism to set up ion concentrations for na and k		
+
+            //**************************************************************************
+            // Autonomous fast firing membrane properties
+            //**************************************************************************
+            insert GPi_Na                       //MODEL FOR NA+ CURRENT
+                gna_GPi_Na = my_gna_na          
+            insert GPi_NaL                      //MODEL FOR NA+ LEAK CURRENT
+                gna_GPi_NaL = my_gna_nal
+            insert GPi_Ih                       //MODEL FOR K+ INWARD RECTIFIER CURRENT
+                gh_GPi_Ih = my_gh_ih
+            insert GPi_KDRf                     //MODEL FOR FAST-DEACTIVATING K+ CURRENT (delayed rectifier)
+                gk_GPi_KDRf = my_gk_kdrf
+            insert GPi_KDRs                     //MODEL FOR SLOW-DEACTIVATING K+ CURRENT (delayed rectifier)
+                gk_GPi_KDRs = my_gk_kdrs
+            insert GPi_sKCa                     //MODEL FOR SMALL COND CA2+ ACTIVATED K+ CURRENT
+                gk_GPi_sKCa = my_gk_skca
+            insert GPi_cacum                    //MODEL FOR CA2+ ACCUMULATION
+                cai0_GPi_cacum = cai0_ca_ion
+            insert GPi_HVA                      //MODEL FOR HVA Ca2+ CURRENT
+                gcaL_GPi_HVA = my_gcal_hva
+                gcaN_GPi_HVA = my_gcan_hva
+
+            insert extracellular xraxial=1e+09 xg=1e+09 xc=0
+        }
+    }
+
+    for i=0,axonnodes-2 {
+        node[i]{
+            s[i+dendelements+somaelements+iselements] = new SectionRef()					
+            nseg = 1
+            Ra = rhoa/10000
+            cm = 2
+            insert axnode75	
+				gnabar_axnode75 = 2.0  
+				gnapbar_axnode75 = 0.05 
+				gkbar_axnode75 = 0.07
+				gl_axnode75 = 0.005
+				ek_axnode75 = -85
+				ena_axnode75 = 55
+				el_axnode75 = -60 
+				vshift_axnode75 = 15
+				vtraub_axnode75 = -80
+            insert extracellular xraxial=Rpn0 xg=1e10 xc=0
+        }
+    }
+	
+	node[axonnodes-1]{
+		s[dendelements+somaelements+iselements+axonnodes-1] = new SectionRef()
+		nseg = 1
+        Ra = rhoa/10000
+        cm = 2
+        insert pas
+            g_pas = 0.0001
+            e_pas = v_init 
+        insert extracellular xraxial=Rpn0 xg=1e10 xc=0
+	}
+
+    for i=0, paranodes1-1 {
+        MYSA[i]{
+            s[i+dendelements+somaelements+iselements+axonnodes] = new SectionRef()
+            nseg = 1
+            Ra = rhoa/10000
+            cm = 2
+            insert pas
+                g_pas = 0.0001	
+                e_pas = -60
+            insert extracellular xraxial=Rpn1 xg=mygm/(nl*2) xc=mycm/(nl*2)
+        }
+    }
+
+    for i=0, paranodes2-1 {
+        FLUT[i]{
+            s[i+dendelements+somaelements+iselements+axonnodes+paranodes1] = new SectionRef()
+            nseg = 1
+            Ra = rhoa/10000
+            cm = 2
+            insert parak75
+                gkbar_parak75 = 0.02
+                ek_parak75 = -85
+                vshift_parak75 = 15
+            insert pas
+                g_pas = 0.0001		
+                e_pas = -60
+            insert extracellular xraxial=Rpn2 xg=mygm/(nl*2) xc=mycm/(nl*2)
+        }
+    }
+    for i=0, axoninter-1 {
+        STIN[i]{
+            s[i+dendelements+somaelements+iselements+axonnodes+paranodes1+paranodes2] = new SectionRef()
+            nseg = 1
+            Ra = rhoa/10000
+            cm = 2
+            insert pas
+                g_pas = 0.0001
+                e_pas = -60
+            insert extracellular xraxial=Rpx xg=mygm/(nl*2) xc=mycm/(nl*2)
+        }
+    }
+}
+//--------------------------------------------------------------------------------------//
+
+//------------------------------- Connections ------------------------------------------//
+proc connections() {
+	//*********************************************************************************
+	// Connection list
+	//*********************************************************************************
+
+	for i=0, somaelements-2 {
+		connect soma[i+1](0), soma[i](1)
+	}
+
+	connect dend[0](0), soma[7](1)
+	connect dend[1](0), dend[0](1)
+	connect dend[2](0), dend[1](1)
+	connect dend[3](0), dend[2](1)
+	connect dend[4](0), dend[3](1)
+	connect dend[5](0), dend[4](1)
+	connect dend[6](0), dend[5](1)
+	connect dend[7](0), dend[6](1)
+	connect dend[8](0), dend[7](1)
+	connect dend[9](0), dend[8](1)
+	connect dend[10](0), dend[9](1)
+	connect dend[11](0), dend[10](1)
+	connect dend[12](0), dend[11](1)
+	connect dend[13](0), dend[12](1)
+	connect dend[14](0), dend[13](1)
+	connect dend[15](0), dend[6](1)     //branch
+	connect dend[16](0), dend[15](1)
+	connect dend[17](0), dend[0](1)     //branch
+	connect dend[18](0), dend[17](1)
+	connect dend[19](0), dend[18](1)
+	connect dend[20](0), dend[19](1)
+	connect dend[21](0), dend[20](1)
+	connect dend[22](0), dend[21](1)
+	connect dend[23](0), dend[22](1)
+	connect dend[24](0), dend[23](1)
+	connect dend[25](0), dend[0](1)     //branch
+	connect dend[26](0), dend[25](1)
+	connect dend[27](0), dend[26](1)
+	connect dend[28](0), dend[27](1)
+	connect dend[29](0), dend[28](1)
+	connect dend[30](0), dend[29](1)
+	connect dend[31](0), dend[30](1)
+	connect dend[32](0), dend[31](1)
+	connect dend[33](0), dend[32](1)
+	connect dend[34](0), dend[33](1)
+	connect dend[35](0), dend[34](1)
+	connect dend[36](0), dend[35](1)
+	connect dend[37](0), dend[36](1)
+	connect dend[38](0), dend[28](1)    //branch
+	connect dend[39](0), dend[38](1)
+	connect dend[40](0), dend[39](1)
+	connect dend[41](0), soma[0](1)     //branch
+	connect dend[42](0), dend[41](1)
+	connect dend[43](0), dend[42](1)
+	connect dend[44](0), dend[43](1)
+	connect dend[45](0), dend[44](1)
+	connect dend[46](0), dend[45](1)
+	connect dend[47](0), dend[46](1)
+	connect dend[48](0), dend[47](1)
+	connect dend[49](0), dend[48](1)
+	connect dend[50](0), dend[49](1)
+	connect dend[51](0), dend[50](1)
+	connect dend[52](0), dend[41](1)    //branch
+	connect dend[53](0), dend[52](1)
+	connect dend[54](0), dend[53](1)
+	connect dend[55](0), dend[54](1)
+	connect dend[56](0), dend[55](1)
+	connect dend[57](0), dend[56](1)
+	connect dend[58](0), dend[47](1)
+	connect dend[59](0), dend[58](1)
+
+	connect initseg[0](0), soma[1](1)
+	connect node[0](0), initseg[0](1)
+
+	for i=0, axonnodes-2 {
+		connect MYSA[2*i](0), node[i](1)
+		connect FLUT[2*i](0), MYSA[2*i](1)
+		connect STIN[3*i](0), FLUT[2*i](1)
+		connect STIN[3*i+1](0), STIN[3*i](1)
+		connect STIN[3*i+2](0), STIN[3*i+1](1)
+		connect FLUT[2*i+1](0), STIN[3*i+2](1)
+		connect MYSA[2*i+1](0), FLUT[2*i+1](1)
+		connect node[i+1](0), MYSA[2*i+1](1)	
+	}
+}
+//--------------------------------------------------------------------------------------//
+
+//----------------------------- Geometry -----------------------------------------------//
+proc geometry1() {
+	//*********************************************************************************
+	// Compartment list
+	//*********************************************************************************
+	soma[0] {
+		 pt3dadd(-8515.159,5268.953,-1303.344,10)
+		 pt3dadd(-8511.8016,5267.0221,-1306.5062,10)
+	}
+	soma[1] {
+		 pt3dadd(-8511.8016,5267.0221,-1306.5062,10)
+		 pt3dadd(-8508.4442,5265.0913,-1309.6684,10)
+	}
+	soma[2] {
+		 pt3dadd(-8508.4442,5265.0913,-1309.6684,10)
+		 pt3dadd(-8505.0868,5263.1604,-1312.8306,10)
+	}
+	soma[3] {
+		 pt3dadd(-8505.0868,5263.1604,-1312.8306,10)
+		 pt3dadd(-8501.7294,5261.2295,-1315.9929,10)
+	}
+	soma[4] {
+		 pt3dadd(-8501.7294,5261.2295,-1315.9929,10)
+		 pt3dadd(-8498.7863,5262.1054,-1319.9388,10)
+	}
+	soma[5] {
+		 pt3dadd(-8498.7863,5262.1054,-1319.9388,10)
+		 pt3dadd(-8495.8431,5262.9813,-1323.8848,10)
+	}
+	soma[6] {
+		 pt3dadd(-8495.8431,5262.9813,-1323.8848,10)
+		 pt3dadd(-8495.3918,5267.1386,-1326.6259,10)
+	}
+	soma[7] {
+		 pt3dadd(-8495.3918,5267.1386,-1326.6259,10)
+		 pt3dadd(-8494.9405,5271.2959,-1329.367,10)
+	}
+	soma[8] {
+		 pt3dadd(-8494.9405,5271.2959,-1329.367,10)
+		 pt3dadd(-8497.3653,5275.6264,-1328.7619,10)
+	}
+	soma[9] {
+		 pt3dadd(-8497.3653,5275.6264,-1328.7619,10)
+		 pt3dadd(-8499.7901,5279.957,-1328.1568,10)
+	}
+	soma[10] {
+		 pt3dadd(-8499.7901,5279.957,-1328.1568,10)
+		 pt3dadd(-8503.1128,5282.59,-1325.5059,10)
+	}
+	soma[11] {
+		 pt3dadd(-8503.1128,5282.59,-1325.5059,10)
+		 pt3dadd(-8506.4355,5285.223,-1322.855,10)
+	}
+	soma[12] {
+		 pt3dadd(-8506.4355,5285.223,-1322.855,10)
+		 pt3dadd(-8509.7786,5285.8727,-1319.1942,10)
+	}
+	soma[13] {
+		 pt3dadd(-8509.7786,5285.8727,-1319.1942,10)
+		 pt3dadd(-8513.1216,5286.5224,-1315.5333,10)
+	}
+	soma[14] {
+		 pt3dadd(-8513.1216,5286.5224,-1315.5333,10)
+		 pt3dadd(-8515.3774,5284.1894,-1311.7296,10)
+	}
+
+
+	dend[0] {   //to soma[7]
+		 pt3dadd(-8494.9405,5271.2959,-1329.367,10)
+		 pt3dadd(-8484.0863,5275.1863,-1340.6829,1.53)
+	}
+	dend[1] {
+		 pt3dadd(-8484.0863,5275.1863,-1340.6829,1.53)
+		 pt3dadd(-8476.5526,5279.9636,-1345.2019,1.53)
+	}
+	dend[2] {
+		 pt3dadd(-8476.5526,5279.9636,-1345.2019,1.53)
+		 pt3dadd(-8469.0189,5284.7409,-1349.7208,1.53)
+	}
+	dend[3] {
+		 pt3dadd(-8469.0189,5284.7409,-1349.7208,1.53)
+		 pt3dadd(-8461.4851,5289.5182,-1354.2397,1.53)
+	}
+	dend[4] {
+		 pt3dadd(-8461.4851,5289.5182,-1354.2397,1.53)
+		 pt3dadd(-8458.6422,5298.1982,-1358.311,1.53)
+	}
+	dend[5] {
+		 pt3dadd(-8458.6422,5298.1982,-1358.311,1.53)
+		 pt3dadd(-8455.7993,5306.8782,-1362.3823,1.53)
+	}
+	dend[6] {
+		 pt3dadd(-8455.7993,5306.8782,-1362.3823,1.53)
+		 pt3dadd(-8451.4257,5313.8504,-1368.062,1.53)
+	}
+	dend[7] {
+		 pt3dadd(-8451.4257,5313.8504,-1368.062,1.53)
+		 pt3dadd(-8444.985,5318.6494,-1374.0191,1.53)
+	}
+	dend[8] {
+		 pt3dadd(-8444.985,5318.6494,-1374.0191,1.53)
+		 pt3dadd(-8438.5444,5323.4485,-1379.9762,1.53)
+	}
+	dend[9] {
+		 pt3dadd(-8438.5444,5323.4485,-1379.9762,1.53)
+		 pt3dadd(-8432.1037,5328.2475,-1385.9334,1.53)
+	}
+	dend[10] {
+		 pt3dadd(-8432.1037,5328.2475,-1385.9334,1.53)
+		 pt3dadd(-8428.1464,5336.1494,-1390.6131,1.53)
+	}
+	dend[11] {
+		 pt3dadd(-8428.1464,5336.1494,-1390.6131,1.53)
+		 pt3dadd(-8424.189,5344.0513,-1395.2928,1.53)
+	}
+	dend[12] {
+		 pt3dadd(-8424.189,5344.0513,-1395.2928,1.53)
+		 pt3dadd(-8420.2316,5351.9531,-1399.9725,1.53)
+	}
+	dend[13] {
+		 pt3dadd(-8420.2316,5351.9531,-1399.9725,1.53)
+		 pt3dadd(-8413.2853,5357.368,-1404.7083,1.53)
+	}
+	dend[14] {
+		 pt3dadd(-8413.2853,5357.368,-1404.7083,1.53)
+		 pt3dadd(-8406.339,5362.783,-1409.444,1.53)
+	}
+	dend[15] {  //to dend[6]
+		 pt3dadd(-8451.4257,5313.8504,-1368.062,1.53)
+		 pt3dadd(-8458.4573,5316.8861,-1361.6324,1.53)
+	}
+	dend[16] {
+		 pt3dadd(-8458.4573,5316.8861,-1361.6324,1.53)
+		 pt3dadd(-8465.489,5319.9219,-1355.2028,1.53)
+	}
+	dend[17] {  //to dend[0]
+		 pt3dadd(-8484.0863,5275.1863,-1340.6829,1.53)
+		 pt3dadd(-8475.3193,5276.9344,-1345.1644,1.53)
+	}
+	dend[18] {
+		 pt3dadd(-8475.3193,5276.9344,-1345.1644,1.53)
+		 pt3dadd(-8466.5523,5278.6826,-1349.6458,1.02)
+	}
+	dend[19] {
+		 pt3dadd(-8466.5523,5278.6826,-1349.6458,1.02)
+		 pt3dadd(-8457.7853,5280.4307,-1354.1273,1.02)
+	}
+	dend[20] {
+		 pt3dadd(-8457.7853,5280.4307,-1354.1273,1.02)
+		 pt3dadd(-8449.0182,5282.1789,-1358.6088,1.02)
+	}
+	dend[21] {
+		 pt3dadd(-8449.0182,5282.1789,-1358.6088,1.02)
+		 pt3dadd(-8440.2512,5283.9271,-1363.0902,1.02)
+	}
+	dend[22] {
+		 pt3dadd(-8440.2512,5283.9271,-1363.0902,1.02)
+		 pt3dadd(-8432.6846,5279.4051,-1367.8123,1.02)
+	}
+	dend[23] {
+		 pt3dadd(-8432.6846,5279.4051,-1367.8123,1.02)
+		 pt3dadd(-8425.118,5274.8831,-1372.5344,1.02)
+	}
+	dend[24] {
+		 pt3dadd(-8425.118,5274.8831,-1372.5344,1.02)
+		 pt3dadd(-8417.5514,5270.3611,-1377.2565,1.02)
+	}
+	dend[25] {  //to dend[0]
+		 pt3dadd(-8484.0863,5275.1863,-1340.6829,1.53)
+		 pt3dadd(-8480.4223,5267.9191,-1346.4935,1.53)
+	}
+	dend[26] {
+		 pt3dadd(-8480.4223,5267.9191,-1346.4935,1.53)
+		 pt3dadd(-8476.7584,5260.6518,-1352.3041,1.53)
+	}
+	dend[27] {
+		 pt3dadd(-8476.7584,5260.6518,-1352.3041,1.53)
+		 pt3dadd(-8471.18,5253.9316,-1357.1745,1.53)
+	}
+	dend[28] {
+		 pt3dadd(-8471.18,5253.9316,-1357.1745,1.53)
+		 pt3dadd(-8464.0987,5247.8658,-1360.7884,1.53)
+	}
+	dend[29] {
+		 pt3dadd(-8464.0987,5247.8658,-1360.7884,1.53)
+		 pt3dadd(-8457.0173,5241.8,-1364.4023,1.53)
+	}
+	dend[30] {
+		 pt3dadd(-8457.0173,5241.8,-1364.4023,1.53)
+		 pt3dadd(-8449.9359,5235.7342,-1368.0162,1.53)
+	}
+	dend[31] {
+		 pt3dadd(-8449.9359,5235.7342,-1368.0162,1.53)
+		 pt3dadd(-8442.4074,5229.4631,-1366.0177,1.53)
+	}
+	dend[32] {
+		 pt3dadd(-8442.4074,5229.4631,-1366.0177,1.53)
+		 pt3dadd(-8434.879,5223.1919,-1364.0191,1.53)
+	}
+	dend[33] {
+		 pt3dadd(-8434.879,5223.1919,-1364.0191,1.53)
+		 pt3dadd(-8427.3505,5216.9207,-1362.0205,1.53)
+	}
+	dend[34] {
+		 pt3dadd(-8427.3505,5216.9207,-1362.0205,1.53)
+		 pt3dadd(-8417.5681,5216.2068,-1360.0723,1.53)
+	}
+	dend[35] {
+		 pt3dadd(-8417.5681,5216.2068,-1360.0723,1.53)
+		 pt3dadd(-8410.8479,5208.8038,-1359.8867,1.53)
+	}
+	dend[36] {
+		 pt3dadd(-8410.8479,5208.8038,-1359.8867,1.53)
+		 pt3dadd(-8404.1277,5201.4009,-1359.7011,1.53)
+	}
+	dend[37] {
+		 pt3dadd(-8404.1277,5201.4009,-1359.7011,1.53)
+		 pt3dadd(-8397.4074,5193.9979,-1359.5155,1.53)
+	}
+	dend[38] {  //to dend[28]
+		 pt3dadd(-8464.0987,5247.8658,-1360.7884,1.53)
+		 pt3dadd(-8462.1739,5248.7294,-1370.5633,1.53)
+	}
+	dend[39] {
+		 pt3dadd(-8462.1739,5248.7294,-1370.5633,1.53)
+		 pt3dadd(-8460.249,5249.5931,-1380.3383,1.02)
+	}
+	dend[40] {
+		 pt3dadd(-8460.249,5249.5931,-1380.3383,1.02)
+		 pt3dadd(-8455.5809,5252.2443,-1388.7751,1.02)
+	}
+
+
+	dend[41] {  //to soma[0]
+		 pt3dadd(-8511.8016,5267.0221,-1306.5062,10)
+		 pt3dadd(-8525.5135,5270.3276,-1298.5091,0.605)
+	}
+	dend[42] {
+		 pt3dadd(-8525.5135,5270.3276,-1298.5091,0.605)
+		 pt3dadd(-8531.0271,5266.6551,-1291.0181,0.605)
+	}
+	dend[43] {
+		 pt3dadd(-8531.0271,5266.6551,-1291.0181,0.605)
+		 pt3dadd(-8536.5406,5262.9827,-1283.5272,0.605)
+	}
+	dend[44] {
+		 pt3dadd(-8536.5406,5262.9827,-1283.5272,0.605)
+		 pt3dadd(-8542.0541,5259.3102,-1276.0363,0.605)
+	}
+	dend[45] {
+		 pt3dadd(-8542.0541,5259.3102,-1276.0363,0.605)
+		 pt3dadd(-8547.5677,5255.6378,-1268.5453,0.605)
+	}
+	dend[46] {
+		 pt3dadd(-8547.5677,5255.6378,-1268.5453,0.605)
+		 pt3dadd(-8553.0812,5251.9653,-1261.0544,0.605)
+	}
+	dend[47] {
+		 pt3dadd(-8553.0812,5251.9653,-1261.0544,0.605)
+		 pt3dadd(-8559.1384,5250.9453,-1253.1633,0.605)
+	}
+	dend[48] {
+		 pt3dadd(-8559.1384,5250.9453,-1253.1633,0.605)
+		 pt3dadd(-8565.1956,5249.9253,-1245.2721,0.605)
+	}
+	dend[49] {
+		 pt3dadd(-8565.1956,5249.9253,-1245.2721,0.605)
+		 pt3dadd(-8571.2528,5248.9053,-1237.381,0.605)
+	}
+	dend[50] {
+		 pt3dadd(-8571.2528,5248.9053,-1237.381,0.605)
+		 pt3dadd(-8577.5846,5249.0893,-1229.6431,0.605)
+	}
+	dend[51] {
+		 pt3dadd(-8577.5846,5249.0893,-1229.6431,0.605)
+		 pt3dadd(-8583.9164,5249.2732,-1221.9053,0.605)
+	}
+	dend[52] {  //to dend[41]
+		 pt3dadd(-8525.5135,5270.3276,-1298.5091,0.605)
+		 pt3dadd(-8527.7642,5262.888,-1292.2172,0.605)
+	}
+	dend[53] {
+		 pt3dadd(-8527.7642,5262.888,-1292.2172,0.605)
+		 pt3dadd(-8530.0148,5255.4484,-1285.9253,0.605)
+	}
+	dend[54] {
+		 pt3dadd(-8530.0148,5255.4484,-1285.9253,0.605)
+		 pt3dadd(-8532.2655,5248.0089,-1279.6335,0.605)
+	}
+	dend[55] {
+		 pt3dadd(-8532.2655,5248.0089,-1279.6335,0.605)
+		 pt3dadd(-8534.5161,5240.5693,-1273.3416,0.605)
+	}
+	dend[56] {
+		 pt3dadd(-8534.5161,5240.5693,-1273.3416,0.605)
+		 pt3dadd(-8536.7668,5233.1298,-1267.0497,0.605)
+	}
+	dend[57] {
+		 pt3dadd(-8536.7668,5233.1298,-1267.0497,0.605)
+		 pt3dadd(-8539.0174,5225.6902,-1260.7578,0.605)
+	}
+	dend[58] {
+		 pt3dadd(-8539.0174,5225.6902,-1260.7578,0.605)
+		 pt3dadd(-8541.268,5218.2507,-1254.466,0.605)
+	}
+	dend[59] {
+		 pt3dadd(-8541.268,5218.2507,-1254.466,0.605)
+		 pt3dadd(-8541.5594,5211.623,-1246.9833,0.605)
+	}
+}
+
+proc axongeometry() {
+
+	initseg[0]{     //to soma[1]
+		 pt3dadd(-8508.4442,5265.0913,-1309.6684,10)
+		 pt3dadd(-8510.692,5263.453,-1306.016,nodeD)
+	}
+
+	// move in +z direction
+	x = -8510.692
+	y = 5263.453
+	z = -1306.016
+
+	NODEcounter = 0
+	MYSAcounter = 0
+	FLUTcounter = 0
+	STINcounter = 0
+
+	for i=1, axonnodes-1 {
+		// node
+		node[NODEcounter] {
+			pt3dadd(x, y, z, nodeD)
+			pt3dadd(x, y, z+nodelength, nodeD)
+		}
+		NODEcounter += 1
+		z += nodelength
+		// MYSA
+		MYSA[MYSAcounter] {
+			pt3dadd(x, y, z, paraD1)
+			pt3dadd(x, y, z+paralength1, paraD1)
+		}
+		MYSAcounter += 1
+		z += paralength1
+		// FLUT
+		FLUT[FLUTcounter] {
+			pt3dadd(x, y, z, paraD2)
+			pt3dadd(x, y, z+paralength2, paraD2)
+		}
+		FLUTcounter += 1
+		z += paralength2
+		// 1st STIN
+		STIN[STINcounter] {
+			pt3dadd(x, y, z, axonD)
+			pt3dadd(x, y, z+STINlength, axonD)
+		}
+		STINcounter+= 1
+		z += STINlength
+		// 2nd STIN
+		STIN[STINcounter] {
+			pt3dadd(x, y, z, axonD)
+			pt3dadd(x, y, z+STINlength, axonD)
+		}
+		STINcounter+= 1
+		z += STINlength
+		// 3rd STIN
+		STIN[STINcounter] {
+			pt3dadd(x, y, z, axonD)
+			pt3dadd(x, y, z+STINlength, axonD)
+		}
+		STINcounter+= 1
+		z += STINlength
+		// FLUT
+		FLUT[FLUTcounter] {
+			pt3dadd(x, y, z, paraD2)
+			pt3dadd(x, y, z+paralength2, paraD2)
+		}
+		FLUTcounter += 1
+		z += paralength2
+		// MYSA
+		MYSA[MYSAcounter] {
+			pt3dadd(x, y, z, paraD1)
+			pt3dadd(x, y, z+paralength1, paraD1)
+		}
+		MYSAcounter += 1
+		z += paralength1
+	}
+	// Last Node outside for loop
+	node[NODEcounter] {
+		pt3dadd(x, y, z, nodeD)
+		pt3dadd(x, y, z+nodelength, nodeD)
+	}
+	NODEcounter += 1
+	z += nodelength
+	
+	axL = z+1306.016
+	
+	// print "GPe axon tip is at: (", x, ", ", y, ", ", z, ")."
+	
+}
+
+endtemplate GPe
