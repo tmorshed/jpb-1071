@@ -11,11 +11,11 @@ h.load_file("./GPe_Template.hoc")
 h.load_file("./STN_Template.hoc")
 
 # set random seed
-# seed(10)
 
 #%% Inititate
 
 def simulate(stn_con_wt=10, gpe_con_wt = 15, numSTN =3, numGPe = 3, tstop = 100):
+    seed(10)
     #tstop: ms
     STNs = []
     GPes = []
@@ -85,7 +85,7 @@ def simulate(stn_con_wt=10, gpe_con_wt = 15, numSTN =3, numGPe = 3, tstop = 100)
     h.finitialize(-65) # Initialize the simulator and
                     # all neuron sections to -65mV
 
-
+    tstop = 100
     for i in tqdm(np.arange(h.t,tstop,h.dt,dtype=float), desc="single sim"):
         h.fadvance()
     return STN_somas, GPe_somas, numSTN, numGPe, tstop
@@ -116,7 +116,7 @@ def visualize(STN_somas, GPe_somas):
 
     plt.suptitle("Connectivity weights: STN =" + str(stn_con_wt) + " & GPe =" + str(gpe_con_wt))
     plt.tight_layout()
-    plt.savefig("./figs/" + str(stn_con_wt) + "s" + str(gpe_con_wt) + "g")
+    plt.show()#savefig("./figs/" + str(stn_con_wt) + "s" + str(gpe_con_wt) + "g")
 # %% RUN SINGLE SIM
 
 stn_con_wt = 10
@@ -125,15 +125,16 @@ numSTN = 3
 numGPe = 3
 tstop = 100
 
+simvals = simulate(stn_con_wt=stn_con_wt,gpe_con_wt=gpe_con_wt, numSTN=numSTN, numGPe=numGPe)
+
 STN_somas=np.array(simvals[0]).T
 GPe_somas=np.array(simvals[1]).T
 
-simvals = simulate(stn_con_wt=stn_con_wt,gpe_con_wt=gpe_con_wt, numSTN=numSTN, numGPe=numGPe)
 visualize(STN_somas,GPe_somas)
 # %% RUN MULTIPLE SIMS
 
-stn_con_wts = [10,15,20]
-gpe_con_wts = [10,15,20]
+stn_con_wts = [-10,0,10]
+gpe_con_wts = [-10,0,10]
 numSTN = 3
 numGPe = 3
 tstop = 100
